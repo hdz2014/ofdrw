@@ -7,12 +7,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.ofdrw.core.OFDElement;
+import org.ofdrw.core.basicStructure.doc.Document;
 import org.ofdrw.pkg.tool.ElemCup;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 /**
  * @author 权观宇
@@ -44,6 +47,18 @@ class VirtualContainerTest {
         Path path = Paths.get("src/test/resources", fileName);
         vc.putFile(path);
         Assertions.assertTrue(Files.exists(Paths.get(target, fileName)));
+
+        // 重复放置相同文件
+        vc.flush();
+        Path fileCopy = Paths.get("target", fileName);
+        Files.delete(fileCopy);
+        Files.copy(path, fileCopy);
+        vc.putFile(fileCopy);
+
+        // 同名不同内容文件
+        Files.delete(fileCopy);
+        Files.copy(Paths.get("src/test/resources/StampImg.png"), fileCopy);
+        Assertions.assertThrows(FileAlreadyExistsException.class, () -> vc.putFile(fileCopy));
     }
 
     @Test
@@ -108,4 +123,30 @@ class VirtualContainerTest {
         Assertions.assertEquals("/Pages/Page_0", pageDir.getAbsLoc().toString());
     }
 
+
+    /**
+     * 测试文件在读取后没有改动，是否会影响文档中文件
+     * @throws IOException no happen
+     * @throws DocumentException  no happen
+     */
+    @Test
+    void testReadFileNoChange() throws IOException, DocumentException {
+        Path docPath = Paths.get("src/test/resources/Document.xml");
+        VirtualContainer doc_0 = vc.obtainContainer("Doc_0", VirtualContainer::new);
+        doc_0.putFile(docPath);
+        vc.close();
+
+        VirtualContainer newVc = new VirtualContainer(Paths.get(target));
+        DocDir docDir0 = newVc.obtainContainer("Doc_0", DocDir::new);
+        Document document = docDir0.getDocument();
+        System.out.println(document.elements().size());
+        newVc.close();
+
+        Path vcDocPath = Paths.get(target + "/Doc_0/Document.xml");
+        byte[] before = Files.readAllBytes(docPath);
+        byte[] after = Files.readAllBytes(vcDocPath);
+
+        Assertions.assertTrue(Arrays.equals(before, after));
+
+    }
 }

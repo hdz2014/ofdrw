@@ -3,13 +3,16 @@ package org.ofdrw.pkg.container;
 import net.lingala.zip4j.ZipFile;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
+import org.ofdrw.core.basicStructure.ofd.DocBody;
 import org.ofdrw.core.basicStructure.ofd.OFD;
+import org.ofdrw.core.basicType.ST_Loc;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 
 /**
@@ -144,6 +147,7 @@ public class OFDDir extends VirtualContainer {
         String name = DocDir.DocContainerPrefix + index;
         return this.getContainer(name, DocDir::new);
     }
+
     public DocDir getDocDir(String name) throws FileNotFoundException {
         return this.getContainer(name, DocDir::new);
     }
@@ -154,7 +158,106 @@ public class OFDDir extends VirtualContainer {
      * @return 第一个文档容器
      */
     public DocDir obtainDocDefault() {
+        if (exit(OFDFileName)) {
+            // 检查OFDFileName是否已经存在，如果存在那么大可能性是读取操作
+            // 在读模式下，通过OFD.xml 第一个DocBody节点中的DocRoot作为默认文档
+            // 如果获取失败那么，尝试获取Doc_0
+            OFD ofd;
+            try {
+                ofd = getOfd();
+                DocBody docBody = ofd.getDocBody();
+                if (docBody != null) {
+                    ST_Loc docRoot = docBody.getDocRoot();
+                    return this.obtainContainer(docRoot.parent(), DocDir::new);
+                }
+            } catch (FileNotFoundException | DocumentException e) {
+                throw new RuntimeException("OFD.xml 文件解析失败");
+            }
+        }
         return obtainDoc(0);
+    }
+
+    /**
+     * 打包成OFD并输出到流
+     * <p>
+     * 1. 创建文件夹复制文件
+     * 2. 打包
+     * 3. 删除临时文件
+     * <p>
+     * 使用操作系统临时文件夹作为输出流数据
+     *
+     * @param outStream 输出流
+     * @throws IOException IO异常
+     */
+    public void jar(OutputStream outStream) throws IOException {
+        if (outStream == null) {
+            throw new IllegalArgumentException("生成OFD文件输出流（outStream）不能为空");
+        }
+        // 刷入缓存中的内容
+        this.flush();
+        //打包
+        ZipOutputStream zip = new ZipOutputStream(outStream);
+        FileTime fileTime = FileTime.fromMillis(System.currentTimeMillis());
+        zip(getSysAbsPath(), "", fileTime, zip);
+        zip.finish();
+        outStream.flush();
+    }
+
+    /**
+     * 打包OFD文件
+     *
+     * @param workDirPath OFD虚拟容器目录
+     * @param zip         输出流
+     * @throws IOException IO异常
+     */
+    private void zip(String workDirPath, String dir, FileTime fileTime, ZipOutputStream zip) throws IOException {
+        final File[] files = new File(workDirPath).listFiles();
+        if (files == null) {
+            throw new RuntimeException("目录中没有任何文件无法打包");
+        }
+        for (File f : files) {
+            String entryName = f.getName();
+            if (dir != null && !"".equals(dir)) {
+                entryName = dir + entryName;
+            }
+            if (f.isDirectory()) {
+                entryName += "/";
+            }
+
+            putEntry(zip, fileTime, entryName);
+
+            if (f.isDirectory()) {
+                zip(f.getAbsolutePath(), entryName, fileTime, zip);
+            } else {
+                writeStream(zip, f);
+            }
+        }
+    }
+
+    /**
+     * 写文件流
+     */
+    private void writeStream(ZipOutputStream zip, File f) throws IOException {
+        try (InputStream fileStream = new BufferedInputStream(new FileInputStream(f))) {
+            byte[] buffer = new byte[1024];
+            int i;
+            while ((i = fileStream.read(buffer)) > 0) {
+                zip.write(buffer, 0, i);
+            }
+            zip.flush();
+            zip.closeEntry();
+        }
+    }
+
+    /**
+     * 添加Entry
+     */
+    private void putEntry(ZipOutputStream zip, FileTime fileTime, String entryName) throws IOException {
+        ZipEntry entry = new ZipEntry(entryName);
+        entry.setCreationTime(fileTime);
+        entry.setLastAccessTime(fileTime);
+        entry.setLastModifiedTime(fileTime);
+        zip.putNextEntry(entry);
     }
 
     /**

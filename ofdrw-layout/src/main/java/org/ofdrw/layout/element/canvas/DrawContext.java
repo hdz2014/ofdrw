@@ -466,7 +466,7 @@ public class DrawContext implements Closeable {
             this.state.ctm = ST_Array.unitCTM();
         }
         ST_Array scale = new ST_Array(scalewidth, 0, 0, scaleheight, 0, 0);
-        this.state.ctm = this.state.ctm.mtxMul(scale);
+        this.state.ctm = scale.mtxMul(this.state.ctm);
         if (this.workPathObj != null) {
             this.workPathObj.setCTM(state.ctm);
         }
@@ -488,7 +488,7 @@ public class DrawContext implements Closeable {
                 Math.cos(alpha), Math.sin(alpha),
                 -Math.sin(alpha), Math.cos(alpha),
                 0, 0);
-        this.state.ctm = this.state.ctm.mtxMul(r);
+        this.state.ctm = r.mtxMul(this.state.ctm);
         if (this.workPathObj != null) {
             this.workPathObj.setCTM(state.ctm);
         }
@@ -510,7 +510,7 @@ public class DrawContext implements Closeable {
                 1, 0,
                 0, 1,
                 x, y);
-        this.state.ctm = this.state.ctm.mtxMul(r);
+        this.state.ctm = r.mtxMul(this.state.ctm);
         if (this.workPathObj != null) {
             this.workPathObj.setCTM(state.ctm);
         }
@@ -538,7 +538,7 @@ public class DrawContext implements Closeable {
                 a, b,
                 c, d,
                 e, f);
-        this.state.ctm = this.state.ctm.mtxMul(r);
+        this.state.ctm = r.mtxMul(this.state.ctm);
         if (this.workPathObj != null) {
             this.workPathObj.setCTM(state.ctm);
         }
@@ -572,7 +572,7 @@ public class DrawContext implements Closeable {
     /**
      * 在OFD上绘制图像
      *
-     * @param img    要使用的图像
+     * @param img    要使用的图像，请避免资源和文档中已经存在的资源重复
      * @param x      在画布上放置图像的 x 坐标位置
      * @param y      在画布上放置图像的 y 坐标位置
      * @param width  要使用的图像的宽度（伸展或缩小图像）
@@ -636,23 +636,17 @@ public class DrawContext implements Closeable {
      * @param x    阅读方向上的左下角 x坐标
      * @param y    阅读方向上的左下角 y坐标
      * @return this
+     * @throws IOException 字体获取异常
      */
     public DrawContext fillText(String text, double x, double y) throws IOException {
         if (text == null || text.trim().isEmpty()) {
             return this;
         }
 
-        FontSetting fontSetting = null;
-        if (state.font != null) {
-            fontSetting = state.font;
-        } else {
-            fontSetting = new FontSetting(1d, FontName.SimSun.font());
-        }
-
         int readDirection = state.font.getReadDirection();
         int charDirection = state.font.getCharDirection();
 
-        Font font = fontSetting.getFont();
+        Font font = state.font.getFont();
         Double fontSize = state.font.getFontSize();
 
         ST_ID id = resManager.addFont(font);
@@ -692,7 +686,7 @@ public class DrawContext implements Closeable {
             txtObj.setCharDirection(Direction.getInstance(charDirection));
         }
         // 测量字间距
-        MeasureBody measureBody = TextMeasureTool.measureWithWith(text, fontSetting);
+        MeasureBody measureBody = TextMeasureTool.measureWithWith(text, state.font);
 
         // 第一个字母的偏移量计算
         double xx = x + measureBody.firstCharOffsetX;

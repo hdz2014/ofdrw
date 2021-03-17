@@ -2,6 +2,217 @@
 
 ## 进展
 
+## Version 1.8.0 2021-3-15 20:41:01
+
+Alias: MyYouthRomanticComedyIsWrongAsIExpected
+
+新增：
+
+- [支持OFD转换图片](./ofdrw-converter/README.md)
+
+修复：
+
+- 无法获取相对路径附件的问题。
+
+## Version 1.7.4 2021-3-8 19:43:42
+
+Alias: AttackOnTitan
+
+修复：
+
+- OFD转PDF text兼容hScale
+- 修复了多环境下`PdfBoxFontHolder`造成的并发异常。
+
+## Version 1.7.3 2021-1-15 22:37:53
+
+Alias: LogHorizon
+
+新增
+
+- OFD转换PDF方法支持使用已经解压的OFD文档作为输入。
+- OFDReader构造方法支持，文件路径以及解压的OFD文档作为输入。
+
+修复
+
+- 向已经存在附件的文件中添加附件时，重覆盖了原Attachment.xml文件的问题。
+- 修复了错误的附件大小计算。
+- 签章v1容器的签章时间格式改为"yyyy-MM-dd HH:mm:ss" 以适应数科阅读器验证。
+
+## Version 1.7.2 2020-12-8 20:11:15
+
+Alias: CellsAtWork
+
+新增
+
+- 关键字定位：增加后缀匹配解决跨TextObject定位。
+
+修复
+
+- 调整了full模块的打包方式为jar并且增加了占位class，修复了一些情况下无法打包和镜像参数无法同步的问题。
+
+## Version 1.7.1 2020-12-1 19:16:34
+
+Alias: HYOUKA
+
+修复
+
+- OFDReader中zip没有关闭，导致文件占用的问题。
+- SealOFDReader 向后兼容了Path的构造参数。
+
+## Version 1.7.0 2020-11-20 19:48:21
+
+Alias: Fate/Zero
+
+新增
+
+- OFD转换模块`ofdrw-converter`发布，支持[OFD转换PDF](ofdrw-converter/src/test/java/HelloWorld.java)
+- RW中主要API均增加流参数支持，如：OFDReader、OFDDoc、OFDSigner、ConvertHelper。
+
+修复
+
+- OFDDoc使用Path对象生成文档是的IAE。
+- 修改了OFD转换PDF的渐变处理
+
+## Version 1.6.10 2020-11-18 11:05:50
+
+Alias: MobileSuitGundamSEED
+
+新增
+
+- 增加了通过类型获取CT_Color实例的方法。
+- 关键字搜索支持通知检索多个关键字。
+- 转换模块支持了PageBlock的嵌套。
+
+修复
+
+- Canvas上下文中增加了默认字体属性的解决了没有设置字体导致的NPE。
+- 解决了转换部分错误。
+
+## Version 1.6.9 2020-11-12 19:22:21
+
+Alias: 	MobuSaikoHyaku
+
+新增
+
+- ofdrw-converter 模块用于转换OFD到PDF [开发中暂不可用]
+- 文字提取增加了指定页码的方法参数
+
+修复:
+
+- 错误CT_CGTransform名称
+- 提升了文字提取的精度
+
+## Version 1.6.8 2020-11-9 21:49:46
+
+Alias: FlyMeToTheMoon
+
+新增:
+
+- 支持了[指定宽度的首行缩进配置](ofdrw-layout/src/test/java/org/ofdrw/layout/cases/content/ParagraphCase.java)
+
+修复:
+
+- 首行缩进可能出现的被分割的情况。
+- 调整了占位span的实现方式，采用构造矩形的方式替换的原有的字形分析。
+
+## Version 1.6.7 2020-11-6 19:20:12
+
+Alias: OriginalGod
+
+新增:
+
+- 签章容器增加了时间戳的设置方法
+- 增加了新的Reader对象用于转换时的元素解析。
+
+修复:
+
+- Page对象中Template应该可以有0到多个
+
+## Version 1.6.6 2020-10-29 20:35:01
+
+Alias: KimetsuNoYaiba
+
+新增:
+
+- [对侧对开骑缝章](ofdrw-sign/src/test/java/org/ofdrw/sign/stamppos/RidingStampPosTest.java)。
+
+修复:
+
+- CT_Dest 错误的PageId属性设置。
+- Signature.xml中MaxSignId重复设置导致多个MaxSignId出现。
+- V4的签名容器增加了签名时间的时区指定。
+
+## Version 1.6.5 2020-10-26 21:55:01
+
+Alias: GrandBlue
+
+修复:
+
+- Canvas API 叠加矩阵变换错误的问题。
+
+新增
+
+- Canvas文档增加了使用HTML Canvas调试的[示例](ofdrw-layout/doc/canvas/README.md)。
+
+## Version 1.6.4 2020-10-23 23:33:38
+
+Alias: BlackLagoon
+
+修复:
+
+- 虚拟容器：修复了在修改模式下由于虚拟容器缓存导致，读取的xml文件在没有变更的情况仍然写回文档，但是在序列化时导致和源文档不一致的问题，该问题会导致签名的完整性验证失败。
+- 签章：修复了在Reader模式下，默认文档不是Doc_0 导致签章之后结果生成Doc_0的问题。
+- 签章：修复了在Signatures.xml被保护是签章没有报错的BUG。
+- 签章定位：骑缝章指定分割数量，在页码不足分割数量时重新调整分割数量适应剩余页码。
+- 文字提取：优化文本宽度计算，解决字号大小不等于deltaX时，宽度计算错误。
+
+## Version 1.6.3 2020-10-21 20:08:32
+
+Alias: HimoutoUmaru
+
+新增:
+
+- core模块中增加了jaxen库的引用，用于支持xpath。
+- 骑缝章增加了页面的边距和切割份数的支持。
+- 优化关键字定位，增加了断字断句文档和CTM处理。
+
+## Version 1.6.2 2020-10-19 19:08:55 
+
+> 为了增加版本趣味性，增加了别名
+
+Alias: overlord
+
+修复：
+
+- 修改文档时向文档添加已经存在文件导致的不友好报错。
+- PageBlock文字提取修复
+
+## Version 1.6.1 2020-10-15 20:51:04
+
+新增：
+
+- [命名空间修改](ofdrw-reader/src/test/java/org/ofdrw/reader/tools/NameSpaceModifierTest.java)和[清理](ofdrw-reader/src/test/java/org/ofdrw/reader/tools/NameSpaceCleanerTest.java)的功能用于迁移部分老本版OFD命名空间问题。
+
+修复:
+
+- 修复了getInstance中错误的QName导致无法获取对应元素的BUG。
+- 修复了由于字体大小大于可用最大宽度在分析阶段导致的死循环。
+
+## Version 1.6.0 2020-10-13 20:22:28
+
+新功能：
+
+- [关键定位功能](ofdrw-reader/src/test/java/org/ofdrw/reader/keyword/KeywordExtractorTest.java)
+- [骑缝章的自由定位](ofdrw-sign/src/test/java/org/ofdrw/sign/stamppos/RidingStampPosTest.java)
+- [不同版本电子签章兼容解析](ofdrw-gm/src/test/java/org/ofdrw/gm/ses/parse/VersionParserTest.java)
+
+修复:
+
+- 修复了 CustomDatas 在解析CustomData 序列时候错误的关键字使用。
+- 修复了V4版本电子签章可选参数tag0的错误。
+- 兼容非标准推荐的签名ID，如"sN"、"N"类型的解析。
+- 支持了坐标偏移中厂商定义的`g`参数偏移量。
+
 ## Version 1.5.6 2020-9-21 23:14:58
 
 - 修复了无法解析OFD内含有中文目录的文件错误。

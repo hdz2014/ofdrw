@@ -1,14 +1,15 @@
 package org.ofdrw.core.text.text;
 
 import org.dom4j.Element;
-import org.ofdrw.core.basicStructure.pageObj.layer.block.ImageObject;
 import org.ofdrw.core.basicStructure.pageObj.layer.block.TextObject;
 import org.ofdrw.core.basicType.ST_ID;
 import org.ofdrw.core.basicType.ST_RefID;
+import org.ofdrw.core.graph.pathObj.FillColor;
+import org.ofdrw.core.graph.pathObj.StrokeColor;
 import org.ofdrw.core.pageDescription.CT_GraphicUnit;
 import org.ofdrw.core.pageDescription.clips.ClipAble;
 import org.ofdrw.core.pageDescription.color.color.CT_Color;
-import org.ofdrw.core.text.CT_CGTransfrom;
+import org.ofdrw.core.text.CT_CGTransform;
 import org.ofdrw.core.text.TextCode;
 
 import java.util.List;
@@ -391,9 +392,9 @@ public class CT_Text extends CT_GraphicUnit<CT_Text> implements ClipAble {
      *
      * @return 填充颜色，null表示黑色
      */
-    public CT_Color getFillColor() {
+    public FillColor getFillColor() {
         Element e = this.getOFDElement("FillColor");
-        return e == null ? null : new CT_Color(e);
+        return e == null ? null : new FillColor(e);
     }
 
 
@@ -423,9 +424,9 @@ public class CT_Text extends CT_GraphicUnit<CT_Text> implements ClipAble {
      *
      * @return 勾边颜色，null为透明色
      */
-    public CT_Color getStrokeColor() {
+    public StrokeColor getStrokeColor() {
         Element e = this.getOFDElement("StrokeColor");
-        return e == null ? null : new CT_Color(e);
+        return e == null ? null : new StrokeColor(e);
     }
 
     /**
@@ -437,7 +438,7 @@ public class CT_Text extends CT_GraphicUnit<CT_Text> implements ClipAble {
      * @param cgTransform 字符编码到字符索引之间的变换关系
      * @return this
      */
-    public CT_Text addCGTransform(CT_CGTransfrom cgTransform) {
+    public CT_Text addCGTransform(CT_CGTransform cgTransform) {
         if (cgTransform == null) {
             return this;
         }
@@ -453,8 +454,8 @@ public class CT_Text extends CT_GraphicUnit<CT_Text> implements ClipAble {
      *
      * @return 字符编码到字符索引之间的变换关系序列
      */
-    public List<CT_CGTransfrom> getCGTransforms() {
-        return this.getOFDElements("CGTransform", CT_CGTransfrom::new);
+    public List<CT_CGTransform> getCGTransforms() {
+        return this.getOFDElements("CGTransform", CT_CGTransform::new);
     }
 
     /**

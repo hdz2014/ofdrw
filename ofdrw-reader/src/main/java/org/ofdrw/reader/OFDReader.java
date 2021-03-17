@@ -1,6 +1,5 @@
 package org.ofdrw.reader;
 
-import net.lingala.zip4j.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.dom4j.DocumentException;
 import org.ofdrw.core.annotation.Annotations;
@@ -19,14 +18,12 @@ import org.ofdrw.core.signatures.Signatures;
 import org.ofdrw.pkg.container.DocDir;
 import org.ofdrw.pkg.container.OFDDir;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Objects;
 
 /**
  * OFD解析器
@@ -67,6 +64,7 @@ public class OFDReader implements Closeable {
         return workDir;
     }
 
+
     /**
      * 构造一个 OFDReader
      *
@@ -80,10 +78,59 @@ public class OFDReader implements Closeable {
         workDir = Files.createTempDirectory("ofd-tmp-");
         // 解压文档，到临时的工作目录
         ZipUtil.unZipFiles(ofdFile.toFile(), workDir.toAbsolutePath().toString() + File.separator);
-//        new ZipFile(ofdFile.toFile()).extractAll(workDir.toAbsolutePath().toString());
         ofdDir = new OFDDir(workDir);
         // 创建资源定位器
         rl = new ResourceLocator(ofdDir);
+    }
+
+    /**
+     * 构造一个 OFDReader
+     *
+     * @param ofdFileLoc OFD文件位置，例如：”/home/user/myofd.ofd“
+     * @throws IOException OFD文件操作IO异常
+     */
+    public OFDReader(String ofdFileLoc) throws IOException {
+        this(Paths.get(ofdFileLoc));
+    }
+
+    /**
+     * 构造一个 OFDReader
+     *
+     * @param stream OFD文件输入流
+     * @throws IOException OFD文件操作IO异常
+     */
+    public OFDReader(InputStream stream) throws IOException {
+        if (stream == null) {
+            throw new IllegalArgumentException("文件输入流(stream)不正确");
+        }
+        workDir = Files.createTempDirectory("ofd-tmp-");
+        // 解压文档，到临时的工作目录
+        ZipUtil.unZipFiles(stream, workDir.toAbsolutePath().toString() + File.separator);
+        ofdDir = new OFDDir(workDir);
+        // 创建资源定位器
+        rl = new ResourceLocator(ofdDir);
+    }
+
+    /**
+     * 因一些ofd文件无法使用ZipUtil解压缩，可以让用户自己在外面解压缩好后，传入根目录创建
+     * 例如用户可以使用unzip或者unar等命令行方式解压缩，因此通过参数控制是否删除目录。
+     *
+     * @param unzippedPathRoot 已经解压的OFD根目录位置
+     * @param deleteOnClose    退出时是否删除 unzippedPathRoot 文件， true - 退出时删除；false - 不删除
+     */
+    public OFDReader(String unzippedPathRoot, boolean deleteOnClose) {
+        workDir = Paths.get(unzippedPathRoot);
+        if (Files.notExists(workDir) || !Files.isDirectory(workDir)) {
+            throw new IllegalArgumentException("文件位置(unzippedPathRoot)不正确");
+        }
+        ofdDir = new OFDDir(workDir);
+        // 创建资源定位器
+        rl = new ResourceLocator(ofdDir);
+        // 通过参数来指定是否删除外部文档，保证谁创建的目录谁负责这个原则
+        if (!deleteOnClose) {
+            closed = true;
+        }
+
     }
 
     /**
@@ -264,7 +311,7 @@ public class OFDReader implements Closeable {
      */
     public ST_Box getPageSize(Page page) {
         CT_PageArea pageArea = page.getArea();
-        if (pageArea == null) {
+        if (pageArea == null || pageArea.getPhysicalBox() == null) {
             // 如果页面没有定义页面区域，则使用文件 CommonData中的定义
             Document document;
             try {
@@ -275,7 +322,6 @@ public class OFDReader implements Closeable {
             CT_CommonData commonData = document.getCommonData();
             pageArea = commonData.getPageArea();
         }
-
         return pageArea.getPhysicalBox();
     }
 
@@ -371,41 +417,42 @@ public class OFDReader implements Closeable {
         if (name == null || name.trim().length() == 0) {
             return null;
         }
-        rl.save();
+
+        DocDir docDir = ofdDir.obtainDocDefault();
+        rl.cd(docDir);
+        Document document = null;
+        Attachments attachments = null;
         try {
-            DocDir docDir = ofdDir.obtainDocDefault();
-            rl.cd(docDir);
-            Document document = null;
-            Attachments attachments = null;
-            try {
-                document = docDir.getDocument();
-            } catch (FileNotFoundException | DocumentException e) {
-                throw new BadOFDException(e);
+            document = docDir.getDocument();
+        } catch (FileNotFoundException | DocumentException e) {
+            throw new BadOFDException(e);
+        }
+        ST_Loc attachmentsLoc = document.getAttachments();
+        if (attachmentsLoc == null) {
+            // 文档中没有附件目录文件
+            return null;
+        }
+        try {
+            // 获取附件目录
+            attachments = rl.get(attachmentsLoc, Attachments::new);
+        } catch (FileNotFoundException | DocumentException e) {
+            System.err.println(">> 无法获取或解析Attachments.xml: " + e.getMessage());
+            return null;
+        }
+
+        String parent = attachmentsLoc.parent();
+        if (parent != null) {
+            rl.cd(parent);
+        }
+
+        for (CT_Attachment attachment : attachments.getAttachments()) {
+            // 寻找匹配名称的附件
+            if (attachment.getAttachmentName().equals(name)) {
+                return attachment;
             }
-            ST_Loc attachmentsLoc = document.getAttachments();
-            if (attachmentsLoc == null) {
-                // 文档中没有附件目录文件
-                return null;
-            }
-            try {
-                // 获取附件目录
-                attachments = rl.get(attachmentsLoc, Attachments::new);
-            } catch (FileNotFoundException | DocumentException e) {
-                System.err.println(">> 无法获取或解析Attachments.xml: " + e.getMessage());
-                return null;
-            }
-            for (CT_Attachment attachment : attachments.getAttachments()) {
-                // 寻找匹配名称的附件
-                if (attachment.getAttachmentName().equals(name)) {
-                    return attachment;
-                }
-            }
-        } finally {
-            rl.restore();
         }
         return null;
     }
-
 
 
     /**
